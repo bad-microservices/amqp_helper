@@ -1,0 +1,49 @@
+Getting started
+=================
+
+Installation
+--------------
+
+via PyPi
+~~~~~~~~
+
+py_auth_micro is available from PyPi and can be installed with `pip` from there. Just run the following command.
+
+.. code-block:: bash
+
+    python3 -m pip install py-auth-micro
+
+
+with python-ldap
+
+.. code-block:: bash
+
+    python3 -m pip install py-auth-micro python-ldap
+
+
+From Source
+~~~~~~~~~~~~~
+
+#. Clone the repository
+
+.. code-block:: bash
+
+    git clone https://github.com/bad-microservices/py_auth_micro.git
+
+#. navigate into the cloned folder
+
+.. code-block:: bash
+
+    cd py_auth_micro
+
+#. install via pip
+
+.. code-block:: bash
+
+    python3 -m pip install .
+
+(OPTIONAL) install python-ldap
+
+.. code-block:: bash
+
+    python3 -m pip install python-ldap
