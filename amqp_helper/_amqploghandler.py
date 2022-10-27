@@ -1,102 +1,85 @@
-import asyncio
-import json
-import aio_pika
 import os
-import multiprocessing
-import time
-import sys
+import json
+import asyncio
+import atexit
+import aio_pika
+import traceback
+import multiprocessing as mp
 
+from queue import Empty
 
 from datetime import datetime, timedelta
-import traceback
 from logging import StreamHandler, LogRecord
 
-
-asyncio.Queue
 from ._amqpconfig import AMQPConfig
 
-def amqplogprocess(queue:multiprocessing.Queue):
-    loop = asyncio.get_event_loop() 
-
-    async def main():
-        futu = loop.run_in_executor(None,queue.get())
-        futu.add_done_callback(callback)
-
-    async def callback():
-
-        pass
-    while not queue.empty():
-        
-    try:
-        loop.run_until_complete()
-    finally:
-        loop.close()
 
 class AMQPLogHandler(StreamHandler):
     def __init__(self, amqp_config: AMQPConfig):
         StreamHandler.__init__(self)
-        self.msg_queue = multiprocessing.Queue(0)
-        self.worker = AMQPWorker(amqp_config, os.getpid())
-        self.start_worker_process()
-
-    def start_worker_process(self):
-        self.process = multiprocessing.Process(
-            target=self.worker.start,
-            args=[self.msg_queue],
-        )
-        # self.process.daemon = True
-        self.process.start()
-        print("started worker process")
+        self.msg_queue = mp.Queue()
+        self.logprocess = LogProcess(self.msg_queue, amqp_config, os.getpid())
+        self.logprocess.daemon = True
+        self.logprocess.start()
+        atexit.register(self.logprocess.set_parent_pid,-1)
+        atexit.register(self.msg_queue.close)
+        atexit.register(self.logprocess.close)
 
     def emit(self, record):
-        if not self.process.is_alive():
-            self.start_worker_process()
         self.msg_queue.put_nowait(_logrecord_to_dict(record))
 
 
-class AMQPWorker:
-    amqp_config: AMQPConfig
-    parent_pid: int
-
-    def __init__(self, amqp_config: AMQPConfig, parent_pid: int):
-        self.amqp_config = amqp_config
+class LogProcess(mp.Process):
+    def __init__(self, queue: mp.Queue, amqp_config: AMQPConfig, parent_pid: int):
+        self.queue = queue
+        self.cfg = amqp_config
         self.parent_pid = parent_pid
+        super().__init__()
+
+    def set_parent_pid(self,new_pid:int):
+        self.parent_pid = new_pid
 
     @property
     def parent_alive(self):
-        print(os.getppid())
-        print(self.parent_pid)
-        return os.getppid() == self.parent_pid 
+        print(self.parent_pid,os.getppid())
+        return self.parent_pid == os.getppid()
 
-    async def do_work(self, queue: multiprocessing.Queue):
-        print(f"ASYNC PID {os.getpid()}")
-        print("got told to do work!")
-        connection = await aio_pika.connect_robust(**self.amqp_config.aio_pika())
+    def run(self):
+        self.loop = asyncio.get_event_loop()
+        self.loop.run_until_complete(self.log())
+        #asyncio.run(self.log())
+        print("loghandler closed?")
+
+    def get_message(self) -> dict:
+
+        try:
+            msg = self.queue.get_nowait()
+            return msg
+        except Exception:
+            return None
+
+    async def log(self):
+        # loop = asyncio.get_event_loop()
+        connection = await aio_pika.connect_robust(**self.cfg.aio_pika())
         async with connection:
             channel = await connection.channel()
-            while self.parent_alive:
-                while queue.qsize > 0:
-                    msg = queue.get()
+            while self.parent_alive or not self.queue.empty():
+                print(self.parent_alive, not self.queue.empty())
+                msg = await asyncio.to_thread(self.get_message)
+                if msg is not None:
+                    print(f"hello from pid {os.getpid()}")
                     routing_key = msg["level"]
+                    print(f"sending msg {msg['msg']} from pid {os.getpid()}")
                     await channel.default_exchange.publish(
                         aio_pika.Message(
                             body=json.dumps(msg).encode("utf-8"),
                             content_encoding="utf-8",
                             content_type="text/json",
                             expiration=datetime.now()
-                            + timedelta(self.amqp_config.message_lifetime),
+                            + timedelta(seconds=self.cfg.message_lifetime),
                         ),
                         routing_key=routing_key,
                     )
-                    
-
-    def start(self, queue):
-        print(f"PARENTPID {self.parent_pid}")
-        print(f"OS:GETPPID {os.getppid()}")
-        print(f"CHILD PID {os.getpid()}")
-        #loop = asyncio.get_event_loop()
-        #loop.run_until_complete(self.do_work(queue))
-        asyncio.run(self.do_work(queue))
 
 
 def _logrecord_to_dict(obj: LogRecord) -> dict:
