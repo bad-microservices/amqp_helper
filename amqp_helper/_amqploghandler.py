@@ -1,5 +1,6 @@
 import os
 import json
+import signal
 import asyncio
 import atexit
 import aio_pika
@@ -18,68 +19,85 @@ class AMQPLogHandler(StreamHandler):
     def __init__(self, amqp_config: AMQPConfig):
         StreamHandler.__init__(self)
         self.msg_queue = mp.Queue()
-        self.logprocess = LogProcess(self.msg_queue, amqp_config, os.getpid())
-        self.logprocess.daemon = True
+        self.stopping = mp.Event()
+        self.logprocess = LogProcess(self.msg_queue, amqp_config, self.stopping)
+        self.logprocess.daemon = False
         self.logprocess.start()
-        atexit.register(self.logprocess.set_parent_pid,-1)
-        atexit.register(self.msg_queue.close)
-        atexit.register(self.logprocess.close)
+        atexit.register(self.stopping.set)
 
     def emit(self, record):
         self.msg_queue.put_nowait(_logrecord_to_dict(record))
-
+  
 
 class LogProcess(mp.Process):
-    def __init__(self, queue: mp.Queue, amqp_config: AMQPConfig, parent_pid: int):
-        self.queue = queue
-        self.cfg = amqp_config
-        self.parent_pid = parent_pid
-        super().__init__()
+    loop = None
 
-    def set_parent_pid(self,new_pid:int):
-        self.parent_pid = new_pid
+    def __init__(self, queue: mp.Queue, amqp_config: AMQPConfig, event: mp.Event):
+        super(LogProcess,self).__init__()
+        self.mpqueue = queue
+        self.cfg = amqp_config
+        self.parent_stopping = event
 
     @property
     def parent_alive(self):
-        print(self.parent_pid,os.getppid())
-        return self.parent_pid == os.getppid()
+        stop_flag_set = self.parent_stopping.is_set()
+        pid_changed = self._parent_pid != os.getppid()
+        if pid_changed:
+            print("parent process pid changed!")
+        return not (stop_flag_set or pid_changed)
 
+    async def check_parent(self):
+        while True:
+            if not self.parent_alive and self.asqueue.empty():
+                self.loop.stop()
+                break
+            await asyncio.sleep(0.1)
+      
     def run(self):
-        self.loop = asyncio.get_event_loop()
-        self.loop.run_until_complete(self.log())
-        #asyncio.run(self.log())
-        print("loghandler closed?")
 
-    def get_message(self) -> dict:
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        self.asqueue = asyncio.Queue()
 
+        self.loop.create_task(self.get_from_mp_queue())
+        self.loop.create_task(self.handle_asqueue())
+        self.loop.create_task(self.check_parent())
         try:
-            msg = self.queue.get_nowait()
-            return msg
-        except Exception:
-            return None
+            print("starting event loop")
+            self.loop.run_forever()
+            print("eventloop done!")
+        finally:
+            print("eventloop stopped")
+            self.loop.stop()
 
-    async def log(self):
-        # loop = asyncio.get_event_loop()
+        #kill this process because somehow any other way does not work?
+        os.kill(os.getpid(),signal.SIGKILL)
+
+    async def handle_asqueue(self):
         connection = await aio_pika.connect_robust(**self.cfg.aio_pika())
         async with connection:
             channel = await connection.channel()
-            while self.parent_alive or not self.queue.empty():
-                print(self.parent_alive, not self.queue.empty())
-                msg = await asyncio.to_thread(self.get_message)
-                if msg is not None:
-                    print(f"hello from pid {os.getpid()}")
-                    routing_key = msg["level"]
-                    print(f"sending msg {msg['msg']} from pid {os.getpid()}")
-                    await channel.default_exchange.publish(
-                        aio_pika.Message(
-                            body=json.dumps(msg).encode("utf-8"),
-                            content_encoding="utf-8",
-                            content_type="text/json",
-                            expiration=datetime.now()
-                            + timedelta(seconds=self.cfg.message_lifetime),
-                        ),
-                        routing_key=routing_key,
-                    )
+            while True:
+                msg = await self.asqueue.get()
+                routing_key = msg["level"]
+                await channel.default_exchange.publish(
+                    aio_pika.Message(
+                        body=json.dumps(msg).encode("utf-8"),
+                        content_encoding="utf-8",
+                        content_type="text/json",
+                        expiration=datetime.now()
+                        + timedelta(seconds=self.cfg.message_lifetime),
+                    ),
+                    routing_key=routing_key,
+                )
+
+    async def get_from_mp_queue(self):
+        while True:
+            try:
+                msg = await asyncio.to_thread(self.mpqueue.get)
+                await self.asqueue.put(msg)
+            except Empty:
+                pass
 
 
 def _logrecord_to_dict(obj: LogRecord) -> dict:
