@@ -1,6 +1,10 @@
 Changelog
 ===========
 
+0.0.5
+-------
+* added :code:`log_` to queue names so we dont run into the weird issue that RabbitMQ can't openn the error log 
+
 0.0.4
 -------
 * AMQPLogHandler should now properly close down on SIGINT of parent task
