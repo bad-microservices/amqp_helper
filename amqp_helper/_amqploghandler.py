@@ -17,6 +17,7 @@ try:
 except ImportError:
     print("without aio-pika you cant use the AMQPLogHandler")
 
+
 class AMQPLogHandler(StreamHandler):
     def __init__(self, amqp_config: AMQPConfig):
         StreamHandler.__init__(self)
@@ -61,7 +62,6 @@ class LogProcess(mp.Process):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         self.asqueue = asyncio.Queue()
-
         self.loop.create_task(self.get_from_mp_queue())
         self.loop.create_task(self.handle_asqueue())
         self.loop.create_task(self.check_parent())
@@ -70,11 +70,10 @@ class LogProcess(mp.Process):
             self.loop.run_forever()
             print("eventloop done!")
         finally:
-            print("eventloop stopped")
+            print("eventloop stopping")
             self.loop.stop()
-
-        # kill this process because somehow any other way does not work?
-        os.kill(os.getpid(), signal.SIGKILL)
+            # kill this process because somehow any other way does not work?
+            os.kill(os.getpid(), signal.SIGKILL)
 
     async def handle_asqueue(self):
         connection = await aio_pika.connect_robust(**self.cfg.aio_pika())
