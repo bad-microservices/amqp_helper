@@ -12,6 +12,10 @@ from logging import StreamHandler, LogRecord
 
 from ._amqpconfig import AMQPConfig
 
+try:
+    import aio_pika
+except ImportError:
+    print("without aio-pika you cant use the AMQPLogHandler")
 
 class AMQPLogHandler(StreamHandler):
     def __init__(self, amqp_config: AMQPConfig):
@@ -28,7 +32,6 @@ class AMQPLogHandler(StreamHandler):
 
 
 class LogProcess(mp.Process):
-    import aio_pika
 
     loop = None
 
