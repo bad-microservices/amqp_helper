@@ -3,12 +3,10 @@ import json
 import signal
 import asyncio
 import atexit
-import aio_pika
 import traceback
 import multiprocessing as mp
 
 from queue import Empty
-
 from datetime import datetime, timedelta
 from logging import StreamHandler, LogRecord
 
@@ -27,13 +25,15 @@ class AMQPLogHandler(StreamHandler):
 
     def emit(self, record):
         self.msg_queue.put_nowait(_logrecord_to_dict(record))
-  
+
 
 class LogProcess(mp.Process):
+    import aio_pika
+
     loop = None
 
     def __init__(self, queue: mp.Queue, amqp_config: AMQPConfig, event: mp.Event):
-        super(LogProcess,self).__init__()
+        super(LogProcess, self).__init__()
         self.mpqueue = queue
         self.cfg = amqp_config
         self.parent_stopping = event
@@ -52,7 +52,7 @@ class LogProcess(mp.Process):
                 self.loop.stop()
                 break
             await asyncio.sleep(0.1)
-      
+
     def run(self):
 
         self.loop = asyncio.new_event_loop()
@@ -70,8 +70,8 @@ class LogProcess(mp.Process):
             print("eventloop stopped")
             self.loop.stop()
 
-        #kill this process because somehow any other way does not work?
-        os.kill(os.getpid(),signal.SIGKILL)
+        # kill this process because somehow any other way does not work?
+        os.kill(os.getpid(), signal.SIGKILL)
 
     async def handle_asqueue(self):
         connection = await aio_pika.connect_robust(**self.cfg.aio_pika())
