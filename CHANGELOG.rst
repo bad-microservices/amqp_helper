@@ -1,6 +1,10 @@
 Changelog
 ===========
 
+0.0.8
+------
+* bugfix -> regression fixed readded log_ prefix
+
 0.0.7
 ------
 * bugfix for ssl_options since it was not defined

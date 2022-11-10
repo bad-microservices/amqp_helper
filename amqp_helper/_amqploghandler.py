@@ -82,7 +82,7 @@ class LogProcess(mp.Process):
             channel = await connection.channel()
             while True:
                 msg = await self.asqueue.get()
-                routing_key = msg["level"]
+                routing_key = f"log_{msg['level']}"
                 await channel.default_exchange.publish(
                     aio_pika.Message(
                         body=json.dumps(msg).encode("utf-8"),
