@@ -3,6 +3,7 @@ import ssl
 from dataclasses import dataclass
 from typing import Optional
 
+
 @dataclass
 class AMQPConfig:
     """Config class for AMQP Connections
@@ -16,18 +17,17 @@ class AMQPConfig:
         connection_name (str, optional): Name to register the connection with. Defaults to :code:`None`.
         message_lifetime (int, optional): Expiry Time of messages in seconds. Defaults to :code:`60`.
         ca_file (str, optional): If you want to use an SSLContext for connecting specify the path to the ca File here. Defaults to :code:`None`.
-        
-    """
-    host:str = "localhost"
-    port:int = 5672
-    username:str="guest"
-    password:str="guest"
-    vhost:str="/"
-    connection_name:Optional[str] = None
-    message_lifetime:int = 60
-    ca_file: Optional[str] = None
-    
 
+    """
+
+    host: str = "localhost"
+    port: int = 5672
+    username: str = "guest"
+    password: str = "guest"
+    vhost: str = "/"
+    connection_name: Optional[str] = None
+    message_lifetime: int = 60
+    ca_file: Optional[str] = None
 
     @property
     def ssl(self):
@@ -39,13 +39,16 @@ class AMQPConfig:
         """ssl.SSLContext | None: if you specified an :code:`ca_file` will return an :code:`SSLContext`. If not it will return :code:`None`."""
         if self.ca_file is None:
             return None
-        return ssl.create_default_context(cafile=self.ca_file)
-    
+        return {
+            "ca_certs": self.ca_file,
+            "cert_reqs": ssl.CERT_REQUIRED,
+        }
+
     @property
     def client_properties(self):
         if self.connection_name is None:
             return None
-        return {"name":self.connection_name}
+        return {"name": self.connection_name}
 
     def aio_pika(self) -> dict:
         """This Function is used to create a dictionary which can be passed to aio-pika
@@ -54,12 +57,12 @@ class AMQPConfig:
             dict: Dictionary which you can pass to aio-pika.connect_robust
         """
         return {
-            "host":self.host,
+            "host": self.host,
             "port": self.port,
             "login": self.username,
             "password": self.password,
             "virtualhost": self.vhost,
             "client_properties": self.client_properties,
-            "ssl":self.ssl,
-            "ssl_context": self.ssl_context
+            "ssl": self.ssl,
+            "ssl_options": self.ssl_options,
         }
