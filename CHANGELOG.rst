@@ -1,10 +1,18 @@
 Changelog
 ===========
 
-0.0.4
+0.0.6
 -------
 * dont create the SSL Context manualy
 * instead pass relevant Info as Argument 
+  
+0.0.5
+-------
+* added :code:`log_` to queue names so we dont run into the weird issue that RabbitMQ can't openn the error log 
+
+0.0.4
+-------
+* AMQPLogHandler should now properly close down on SIGINT of parent task
 
 0.0.3
 -------
