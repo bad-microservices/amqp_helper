@@ -1,6 +1,10 @@
 Changelog
 ===========
 
+0.0.7
+------
+* bugfix for ssl_options since it was not defined
+
 0.0.6
 -------
 * dont create the SSL Context manualy

@@ -35,8 +35,8 @@ class AMQPConfig:
         return self.ca_file is not None
 
     @property
-    def ssl_context(self):
-        """ssl.SSLContext | None: if you specified an :code:`ca_file` will return an :code:`SSLContext`. If not it will return :code:`None`."""
+    def ssl_options(self):
+        """dict | None: if you specified an :code:`ca_file` will return an :code:`dict`. If not it will return :code:`None`."""
         if self.ca_file is None:
             return None
         return {
