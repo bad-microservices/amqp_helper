@@ -12,5 +12,24 @@ Todo:
 from ._version import __version__
 from ._amqpconfig import AMQPConfig
 from ._amqploghandler import AMQPLogHandler
+from ._amqpfunction import (
+    AMQPFunction,
+    new_amqp_func,
+    AsyncAQMPFunction,
+    SyncAQMPFunction,
+)
+from ._amqpservice import AMQPService
+from ._amqpclient import AMQPClient
 
-__all__ = ["__version__","AMQPConfig","AMQPLogHandler"]
+
+__all__ = [
+    "__version__",
+    "AMQPConfig",
+    "AMQPLogHandler",
+    "AMQPService",
+    "AMQPClient",
+    "AMQPFunction",
+    "new_amqp_func",
+    "AsyncAQMPFunction",
+    "SyncAQMPFunction",
+]

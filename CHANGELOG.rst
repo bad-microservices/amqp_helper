@@ -1,6 +1,20 @@
 Changelog
 ===========
 
+0.0.9
+------
+* added :code:`AMQPFunction`
+   * a wrapper around a function
+   * Exception handlers can be attached to it
+   * should be used in conjunction with the :code:`AMQPService`
+* added :code:`AMQPService`
+   * a class for creating AMQP Services
+   * allows calling functions over amqp with a seperate queue for each function
+* added :code:`AMQPClient`
+   * a simple rpc client inspired by the tutorial from the aio_pika documentation
+
+Mind that the new Features are still WIP!
+
 0.0.8
 ------
 * bugfix -> regression fixed readded log_ prefix
