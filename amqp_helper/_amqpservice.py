@@ -71,6 +71,12 @@ class AMQPService:
                 except json.decoder.JSONDecodeError:
                     await message.reject(False)
 
+                #catch errors which did not get catched by the amqfunction
+                except Exception as exc:
+                    logging.exception(exc)
+                    await message.reject(False)
+                    continue
+
                 await message.ack()
 
                 # if we should not reply we hop to the next iteration

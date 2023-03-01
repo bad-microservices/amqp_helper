@@ -28,8 +28,9 @@ class SyncAQMPFunction(AMQPFunction):
         try:
             return self.func(*args,**kwargs)
         except Exception as exc:
-            if type(exc) in self.exception_handlers.keys():
-                return self.exception_handlers[type(exc)](*args,**kwargs)
+            for exc_type in self.exception_handlers.keys():
+                if isinstance(exc,exc_type):
+                    return self.exception_handlers[exc_type](*args,**kwargs)
             raise exc
 
 class AsyncAQMPFunction(AMQPFunction):
@@ -37,6 +38,7 @@ class AsyncAQMPFunction(AMQPFunction):
         try:
             return await self.func(*args,**kwargs)
         except Exception as exc:
-            if type(exc) in self.exception_handlers.keys():
-                return await self.exception_handlers[type(exc)](*args,**kwargs)
+            for exc_type in self.exception_handlers.keys():
+                if isinstance(exc,exc_type):
+                    return await self.exception_handlers[exc_type](*args,**kwargs)
             raise exc
