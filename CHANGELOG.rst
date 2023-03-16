@@ -1,10 +1,14 @@
 Changelog
 ===========
 
+0.0.11
+------
+* :code:`AMQPFunction` Exception handlers now get the Exception which occured passed as keyword argument :code:`exc`
+
 0.0.10
 ------
 * :code:`AMQPService` should now no longer crash if an :code:`AMQPFunction` Exception is not catched.
-* :code:`AMQPFunction` Excpetion Handlers not use isinstance instead of an exact class match
+* :code:`AMQPFunction` Excpetion Handlers now use isinstance instead of an exact class match
    * :code:`Exception` should now catch all Exceptions
    * NOTE: The priority of handling is the same order as the handlers were added. That means if you added an handler for :code:`Exception` first it will catch all errors.
 
