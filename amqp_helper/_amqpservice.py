@@ -28,6 +28,7 @@ class AMQPService:
     connection: AbstractConnection
     channel: AbstractChannel
     loop: asyncio.AbstractEventLoop
+    queues: MutableMapping[str, AbstractQueue]
 
     tasks: MutableMapping[str, asyncio.Task]
 
@@ -35,6 +36,7 @@ class AMQPService:
         self.functions: MutableMapping[str, Callable] = {}
         self.loop = eventloop or asyncio.get_running_loop()
         self.tasks = {}
+        self.queues = {}
 
     async def connect(self, amqp_config: AMQPConfig) -> "AMQPService":
         self.connection = await connect_robust(**amqp_config.aio_pika(), timeout=5)
@@ -49,13 +51,13 @@ class AMQPService:
         kwargs["arguments"] = arguments
 
         queue = await self.channel.declare_queue(func.name, auto_delete=True, **kwargs)
-
-        task = self.loop.create_task(self.__handle_msg(func, queue))
+        self.queues[func.name] = queue
+        task = self.loop.create_task(self.__handle_msg(func))
 
         self.tasks[func.name] = task
 
-    async def __handle_msg(self, func: AMQPFunction, queue: AbstractQueue):
-        async with queue.iterator() as qiterator:
+    async def __handle_msg(self, func: AMQPFunction):
+        async with self.queues[func.name].iterator() as qiterator:
             message: AbstractIncomingMessage
             async for message in qiterator:
                 try:
@@ -107,11 +109,9 @@ class AMQPService:
         tasks_alive = True
         while tasks_alive:
             await asyncio.sleep(1)
-            for queue_name in self.tasks.keys():
+            for queue in self.queues.values():
                 try:
-                    await self.channel.declare_queue(queue_name, passive=True)
-                except Exception:
+                    await queue.declare()
+                except Exception as exc:
+                    print(exc)
                     tasks_alive = False
-
-        for task in self.tasks.values():
-            print(task.exception())

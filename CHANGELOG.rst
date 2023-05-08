@@ -1,6 +1,10 @@
 Changelog
 ===========
 
+0.0.12
+------
+* :code:`AMQPService.serve()` had a 'memory leak'. Now it does not Recreate :code:`Queues` instead it redeclares the old ones.
+
 0.0.11
 ------
 * :code:`AMQPFunction` Exception handlers now get the Exception which occured passed as keyword argument :code:`exc`
