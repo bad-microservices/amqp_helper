@@ -41,8 +41,24 @@ class AMQPClient:
         await self.callback_queue.consume(self.on_response,no_ack=True)
 
         return self
+    
+    async def close(self):
+        """Function to close the AMQP Connection
+
+        Returns:
+            None
+        """
+        await self.connection.close()
 
     def on_response(self, message: AbstractIncomingMessage) -> None:
+        """Functionhandler for an incoming message
+
+        Args:
+            message (AbstractIncomingMessage): The Incoming Message
+
+        Returns:
+            None
+        """
         if message.correlation_id is None:
             print(f"Bad message {message!r}")
             return None

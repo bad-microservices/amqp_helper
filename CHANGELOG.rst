@@ -1,6 +1,11 @@
 Changelog
 ===========
 
+
+0.0.13
+------
+* :code:`AMQPClient` hase new Function :code:`close()` to close the AMQP connection
+
 0.0.12
 ------
 * :code:`AMQPService.serve()` had a 'memory leak'. Now it does not Recreate :code:`Queues` instead it redeclares the old ones.
@@ -61,4 +66,4 @@ Mind that the new Features are still WIP!
 
 0.0.1
 -------
-Initial version supporting :code:`aio-pika`
+* Initial version supporting :code:`aio-pika`
