@@ -4,7 +4,9 @@ Changelog
 
 0.0.13
 ------
-* :code:`AMQPClient` hase new Function :code:`close()` to close the AMQP connection
+* :code:`AMQPClient` has new Function :code:`close()` to close the AMQP connection
+* :code:`AMQPLogHandler` got reworked to work without throwing an error
+   * it will only log everything which got transferred to the log process while the parent process was running
 
 0.0.12
 ------

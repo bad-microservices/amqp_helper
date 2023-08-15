@@ -10,12 +10,13 @@ from queue import Empty
 from datetime import datetime, timedelta
 from logging import StreamHandler, LogRecord
 
-from ._amqpconfig import AMQPConfig
+from amqp_helper._amqpconfig import AMQPConfig
 
 try:
     import aio_pika
 except ImportError:
     print("without aio-pika you cant use the AMQPLogHandler")
+
 
 class AMQPLogHandler(StreamHandler):
     def __init__(self, amqp_config: AMQPConfig):
@@ -49,58 +50,54 @@ class LogProcess(mp.Process):
             print("parent process pid changed!")
         return not (stop_flag_set or pid_changed)
 
-    async def check_parent(self):
-        while True:
-            if not self.parent_alive and self.asqueue.empty():
-                self.loop.stop()
-                break
-            await asyncio.sleep(0.1)
-
     def run(self):
 
         self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
-        self.asqueue = asyncio.Queue()
+        self.asqueue = asyncio.Queue(loop=self.loop)
 
-        self.loop.create_task(self.get_from_mp_queue())
-        self.loop.create_task(self.handle_asqueue())
-        self.loop.create_task(self.check_parent())
         try:
-            print("starting event loop")
-            self.loop.run_forever()
-            print("eventloop done!")
+            self.loop.run_until_complete(self.main())
         finally:
-            print("eventloop stopped")
             self.loop.stop()
 
         # kill this process because somehow any other way does not work?
         os.kill(os.getpid(), signal.SIGKILL)
 
+    async def main(self):
+        self.connection = await aio_pika.connect_robust(**self.cfg.aio_pika())
+        l = await asyncio.gather(
+            self.handle_asqueue(), self.get_from_mp_queue(), loop=self.loop
+        )
+
     async def handle_asqueue(self):
-        connection = await aio_pika.connect_robust(**self.cfg.aio_pika())
-        async with connection:
-            channel = await connection.channel()
-            while True:
-                msg = await self.asqueue.get()
-                routing_key = f"log_{msg['level']}"
-                await channel.default_exchange.publish(
-                    aio_pika.Message(
-                        body=json.dumps(msg).encode("utf-8"),
-                        content_encoding="utf-8",
-                        content_type="text/json",
-                        expiration=datetime.now()
-                        + timedelta(seconds=self.cfg.message_lifetime),
-                    ),
-                    routing_key=routing_key,
-                )
+        connection = self.connection
+
+        channel = await connection.channel()
+        while self.parent_alive or (not self.asqueue.empty()):
+            msg = await self.asqueue.get()
+            routing_key = f"log_{msg['level']}"
+            await channel.default_exchange.publish(
+                aio_pika.Message(
+                    body=json.dumps(msg).encode("utf-8"),
+                    content_encoding="utf-8",
+                    content_type="text/json",
+                    expiration=datetime.now()
+                    + timedelta(seconds=self.cfg.message_lifetime),
+                ),
+                routing_key=routing_key,
+            )
+
+        await connection.close()
 
     async def get_from_mp_queue(self):
-        while True:
+        running = True
+        while running:
             try:
-                msg = await asyncio.to_thread(self.mpqueue.get)
+                msg = await asyncio.to_thread(self.mpqueue.get, timeout=2)
                 await self.asqueue.put(msg)
             except Empty:
-                pass
+                if not self.parent_alive:
+                    running = False
 
 
 def _logrecord_to_dict(obj: LogRecord) -> dict:
