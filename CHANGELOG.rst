@@ -1,6 +1,11 @@
 Changelog
 ===========
 
+0.1.1
+------
+* **BUGFIX**:
+   * :code:`LogProcess.handle_asqueue()` uses :code:`self.asqueue.get()` which could get stuck
+
 0.1.0
 ------
 * :code:`AMQPLogHandler` takes optional Argument

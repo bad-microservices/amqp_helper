@@ -83,8 +83,13 @@ class LogProcess(mp.Process):
         channel = await connection.channel()
         exchange = await channel.declare_exchange(self.exchange_name,aio_pika.ExchangeType.TOPIC,durable=True)
 
-        while self.parent_alive or (not self.asqueue.empty()):
-            msg = await self.asqueue.get()
+        while self.parent_alive:
+            try:
+                msg = self.asqueue.get_nowait()
+            except asyncio.QueueEmpty:
+                await asyncio.sleep(0.1)
+                continue
+
             routing_key = f"{msg['logger']}.{msg['level']}"
             await exchange.publish(
                 aio_pika.Message(
