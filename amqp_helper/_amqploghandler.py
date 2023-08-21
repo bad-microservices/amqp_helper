@@ -9,6 +9,7 @@ import multiprocessing as mp
 from queue import Empty
 from datetime import datetime, timedelta
 from logging import StreamHandler, LogRecord
+from typing import Optional
 
 from amqp_helper._amqpconfig import AMQPConfig
 
@@ -19,11 +20,13 @@ except ImportError:
 
 
 class AMQPLogHandler(StreamHandler):
-    def __init__(self, amqp_config: AMQPConfig):
+    def __init__(self, amqp_config: AMQPConfig, exchange_name: Optional[str] = "amq.topic"):
         StreamHandler.__init__(self)
         self.msg_queue = mp.Queue()
         self.stopping = mp.Event()
-        self.logprocess = LogProcess(self.msg_queue, amqp_config, self.stopping)
+        self.logprocess = LogProcess(
+            self.msg_queue, amqp_config, self.stopping, exchange_name
+        )
         self.logprocess.daemon = False
         self.logprocess.start()
         atexit.register(self.stopping.set)
@@ -33,14 +36,20 @@ class AMQPLogHandler(StreamHandler):
 
 
 class LogProcess(mp.Process):
-
     loop = None
 
-    def __init__(self, queue: mp.Queue, amqp_config: AMQPConfig, event: mp.Event):
+    def __init__(
+        self,
+        queue: mp.Queue,
+        amqp_config: AMQPConfig,
+        event: mp.Event,
+        exchange_name: str,
+    ):
         super(LogProcess, self).__init__()
         self.mpqueue = queue
         self.cfg = amqp_config
         self.parent_stopping = event
+        self.exchange_name = exchange_name
 
     @property
     def parent_alive(self):
@@ -51,7 +60,6 @@ class LogProcess(mp.Process):
         return not (stop_flag_set or pid_changed)
 
     def run(self):
-
         self.loop = asyncio.new_event_loop()
         self.asqueue = asyncio.Queue(loop=self.loop)
 
@@ -73,10 +81,12 @@ class LogProcess(mp.Process):
         connection = self.connection
 
         channel = await connection.channel()
+        exchange = await channel.declare_exchange(self.exchange_name,aio_pika.ExchangeType.TOPIC,durable=True)
+
         while self.parent_alive or (not self.asqueue.empty()):
             msg = await self.asqueue.get()
-            routing_key = f"log_{msg['level']}"
-            await channel.default_exchange.publish(
+            routing_key = f"{msg['logger']}.{msg['level']}"
+            await exchange.publish(
                 aio_pika.Message(
                     body=json.dumps(msg).encode("utf-8"),
                     content_encoding="utf-8",

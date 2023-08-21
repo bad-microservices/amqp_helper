@@ -1,6 +1,13 @@
 Changelog
 ===========
 
+0.1.0
+------
+* :code:`AMQPLogHandler` takes optional Argument
+* **IMPORTANT**: The Exchange gets declared everytime so make sure the config stays the same
+* **BREAKING**:
+   * :code:`AMQPLogHandler` got reworked to use a topic exchange
+   * it will only log everything which got transferred to the log process while the parent process was running
 
 0.0.13
 ------
