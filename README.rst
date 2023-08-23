@@ -5,8 +5,10 @@ amqp_helper
 Introduction
 =============
 
-:code:`amqp_helper` aims to be a simple Helper library to configure AMQP communication via other librarys like :code:`aio-pika` or :code:`pika`.
-To achieve this goal this Library provides the :code:`AMQPConfig` class which enables us to configure the connection Parameters for other librarys in a unified way.
+:code:`amqp_helper` aims to be a simple Helper library to configure AMQP communication for use with :code:`aio-pika`
+To achieve this goal this Library provides the :code:`AMQPConfig` class.
+
+This package also provides a log handler to send logs to an AMQP Broker. You can use it via the class :code:`AMQPLogHandler`
 
 Installation
 ==============
@@ -30,8 +32,8 @@ from source
     cd amqp_helper
     python3 -m pip install .
 
-Example (aio-pika)
-===================
+Example
+========
 
 .. code-block:: python
 

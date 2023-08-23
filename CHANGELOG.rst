@@ -1,6 +1,12 @@
 Changelog
 ===========
 
+0.1.2
+------
+* :code:`AMQPConfig.aio_pika()` ssl_options is now returning :code:`cafile` instead of :code:`ca_certs`
+* **BREAKING**:
+   * :code:`aio_pika` is now required
+
 0.1.1
 ------
 * **BUGFIX**:

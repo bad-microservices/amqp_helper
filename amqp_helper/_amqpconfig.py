@@ -40,7 +40,7 @@ class AMQPConfig:
         if self.ca_file is None:
             return None
         return {
-            "ca_certs": self.ca_file,
+            "cafile": self.ca_file,
             "cert_reqs": ssl.CERT_REQUIRED,
         }
 

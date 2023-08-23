@@ -1,8 +1,9 @@
 import os
 import json
 import signal
-import asyncio
 import atexit
+import asyncio
+import aio_pika
 import traceback
 import multiprocessing as mp
 
@@ -13,10 +14,6 @@ from typing import Optional
 
 from amqp_helper._amqpconfig import AMQPConfig
 
-try:
-    import aio_pika
-except ImportError:
-    print("without aio-pika you cant use the AMQPLogHandler")
 
 
 class AMQPLogHandler(StreamHandler):

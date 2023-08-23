@@ -4,6 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+aio-pika = "*"
 
 [dev-packages]
 sphinx-immaterial = "*"
@@ -14,8 +15,9 @@ build = "*"
 setuptools = "*"
 twine = "*"
 
+
 [requires]
-python_version = "3.9"
+python_version = "3.11"
 
 [pipenv]
 allow_prereleases = true
