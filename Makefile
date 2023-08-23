@@ -1,11 +1,11 @@
-checkfiles = jwt_helper/ doc/
+checkfiles = amqp_helper/ doc/
 
 help:
-	@echo "jwt_helper Makefile"
+	@echo "amqp_helper Makefile"
 	@echo "usage: make <target>"
 	@echo "Targets:"
 	@echo "    - doc       Build the documentation"
-	@echo "    - package   Build jwt_helper as package"
+	@echo "    - package   Build amqp_helper as package"
 
 deps:
 	pipenv --python /usr/bin/python3 install --dev
@@ -13,7 +13,7 @@ deps:
 doc: deps
 	rm -fR ./_build
 	cp ./CHANGELOG.rst ./doc/
-	pipenv run sphinx-build -M html doc _build
+	pipenv --python /usr/bin/python3 run sphinx-build -M html doc _build
 	rm ./doc/CHANGELOG.rst
 
 package: deps
