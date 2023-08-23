@@ -8,7 +8,7 @@ help:
 	@echo "    - package   Build jwt_helper as package"
 
 deps:
-	pipenv install --dev
+	pipenv --python /usr/bin/python3 install --dev
 
 doc: deps
 	rm -fR ./_build
@@ -18,4 +18,4 @@ doc: deps
 
 package: deps
 	rm -fR dist/
-	pipenv run python -m build
+	pipenv --python /usr/bin/python3 run python -m build
