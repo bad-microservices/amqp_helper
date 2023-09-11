@@ -118,3 +118,24 @@ Client
 
     if __name__ == "__main__":
         asyncio.run(main())
+
+
+Logging to AMQP
+================
+
+if we want to log to an AMQP Topic we can do it with the following example code.
+
+.. code-block:: python
+
+    import logging
+    from amqp_helper import AMQPLogHandler
+
+    log_cfg = AMQPConfig(username="test",password="testpw",vhost="testvhost")
+
+    handler = AMQPLogHandler(amqp_config=log_cfg, exchange_name="amqp.topic")
+
+    root_logger= logging.getLogger()
+    root_logger.addHandler(handler)
+
+    root_logger.info("test log message")
+

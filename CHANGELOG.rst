@@ -1,6 +1,11 @@
 Changelog
 ===========
 
+0.1.4
+------
+* **BUGFIX**
+   * :code:`AMQPLogHandler` :code:`asyncio.gather` was called with loop parameter which is not available in python 3.11+
+
 0.1.3
 ------
 * **BUGFIX**

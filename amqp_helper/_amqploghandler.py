@@ -71,7 +71,7 @@ class LogProcess(mp.Process):
     async def main(self):
         self.connection = await aio_pika.connect_robust(**self.cfg.aio_pika())
         l = await asyncio.gather(
-            self.handle_asqueue(), self.get_from_mp_queue(), loop=self.loop
+            self.handle_asqueue(), self.get_from_mp_queue()
         )
 
     async def handle_asqueue(self):
