@@ -58,7 +58,7 @@ class LogProcess(mp.Process):
 
     def run(self):
         self.loop = asyncio.new_event_loop()
-        self.asqueue = asyncio.Queue(loop=self.loop)
+        self.asqueue = asyncio.Queue()
 
         try:
             self.loop.run_until_complete(self.main())

@@ -1,6 +1,11 @@
 Changelog
 ===========
 
+0.1.3
+------
+* **BUGFIX**
+   * :code:`AMQPLogHandler` Log Task created :code:`asyncio.Queue` with loop parameter which is not available in python 3.11+
+
 0.1.2
 ------
 * :code:`AMQPConfig.aio_pika()` ssl_options is now returning :code:`cafile` instead of :code:`ca_certs`
