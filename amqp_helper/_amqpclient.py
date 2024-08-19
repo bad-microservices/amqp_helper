@@ -81,11 +81,18 @@ class AMQPClient:
             content_encoding="utf-8",
             correlation_id=correlation_id,
             reply_to=self.callback_queue.name,
-            expiration=10,
+            expiration=timeout,
         )
 
         await self.channel.default_exchange.publish(
             message, routing_key=routing_key, mandatory=True, timeout=timeout
         )
 
-        return await future
+        returned_data = {}
+        try:
+            returned_data = await asyncio.wait_for(future, timeout)
+        except asyncio.TimeoutError as exc:
+            self.futures.pop(correlation_id)
+            raise exc
+        
+        return returned_data

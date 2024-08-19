@@ -1,6 +1,12 @@
 Changelog
 ===========
 
+0.1.7
+------
+* **BUGFIX**
+   * :code:`AMQPLogHandler` use :code:`os.kill` again because :code:`self.kill` had some problems
+   * :code:`AMQPClient.call` now cancels the Future and uses a Timeout for the response as well. 
+
 0.1.6
 ------
 * **BUGFIX**

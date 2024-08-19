@@ -72,7 +72,7 @@ class LogProcess(mp.Process):
             self.loop.stop()
 
         # kill this process because somehow any other way does not work?
-        self.kill()
+        os.kill(os.getpid(), signal.SIGKILL)
 
     async def main(self):
         self.connection = await aio_pika.connect_robust(**self.cfg.aio_pika())
