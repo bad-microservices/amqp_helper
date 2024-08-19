@@ -137,9 +137,10 @@ def _logrecord_to_dict(obj: LogRecord) -> dict:
         "pid": str(obj.process),
         "process_name": str(obj.processName),
     }
-    try:
-        new_dict["exception_info"] = "; ".join(traceback.format_tb(obj.exc_info[2]))
-    except IndexError:
-        pass
+    if obj.exc_info is not None:
+        try:
+            new_dict["exception_info"] = "; ".join(traceback.format_tb(obj.exc_info[2]))
+        except IndexError:
+            pass
 
     return new_dict

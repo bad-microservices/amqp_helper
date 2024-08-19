@@ -1,6 +1,11 @@
 Changelog
 ===========
 
+0.1.6
+------
+* **BUGFIX**
+   * :code:`AMQPLogHandler` Serialisation of :code:`exc_info` did not check if it was :code:`None`
+
 0.1.5
 ------
 * :code:`AMQPClient.call` now has a timeout set by default.
