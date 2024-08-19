@@ -6,11 +6,11 @@ https://aio-pika.readthedocs.io/en/latest/rabbitmq-tutorial/6-rpc.html
 
 """
 
-import asyncio
 import uuid
 import json
+import asyncio
 
-from typing import MutableMapping, Optional
+from typing import MutableMapping, Optional, Union
 from aio_pika import Message, connect_robust
 from aio_pika.abc import (
     AbstractChannel,
@@ -20,6 +20,8 @@ from aio_pika.abc import (
 )
 
 from amqp_helper import AMQPConfig
+
+TimeoutType = Optional[Union[int, float]]
 
 
 class AMQPClient:
@@ -38,10 +40,10 @@ class AMQPClient:
         self.callback_queue = await self.channel.declare_queue(
             exclusive=True, timeout=5
         )
-        await self.callback_queue.consume(self.on_response,no_ack=True)
+        await self.callback_queue.consume(self.on_response, no_ack=True)
 
         return self
-    
+
     async def close(self):
         """Function to close the AMQP Connection
 
@@ -65,7 +67,9 @@ class AMQPClient:
         future: asyncio.Future = self.futures.pop(message.correlation_id)
         future.set_result(json.loads(message.body))
 
-    async def call(self, data: dict, routing_key: str) -> dict:
+    async def call(
+        self, data: dict, routing_key: str, timeout: TimeoutType = 10
+    ) -> dict:
         correlation_id = str(uuid.uuid4())
         future = self.loop.create_future()
 
@@ -81,7 +85,7 @@ class AMQPClient:
         )
 
         await self.channel.default_exchange.publish(
-            message, routing_key=routing_key, mandatory=True
+            message, routing_key=routing_key, mandatory=True, timeout=timeout
         )
 
         return await future

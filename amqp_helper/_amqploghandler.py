@@ -7,22 +7,22 @@ import aio_pika
 import traceback
 import multiprocessing as mp
 
+
 from queue import Empty
 from datetime import datetime, timedelta
 from logging import StreamHandler, LogRecord
-from typing import Optional
+from multiprocessing.synchronize import Event
 
 from amqp_helper._amqpconfig import AMQPConfig
 
 
-
 class AMQPLogHandler(StreamHandler):
-    def __init__(self, amqp_config: AMQPConfig, exchange_name: Optional[str] = "amq.topic"):
+    def __init__(self, amqp_config: AMQPConfig, exchange_name: str = "amq.topic"):
         StreamHandler.__init__(self)
         self.msg_queue = mp.Queue()
         self.stopping = mp.Event()
         self.logprocess = LogProcess(
-            self.msg_queue, amqp_config, self.stopping, exchange_name
+            self.msg_queue, amqp_config, self.stopping, exchange_name, os.getpid()
         )
         self.logprocess.daemon = False
         self.logprocess.start()
@@ -30,6 +30,9 @@ class AMQPLogHandler(StreamHandler):
 
     def emit(self, record):
         self.msg_queue.put_nowait(_logrecord_to_dict(record))
+
+    def close(self):
+        self.stopping.set()
 
 
 class LogProcess(mp.Process):
@@ -39,19 +42,22 @@ class LogProcess(mp.Process):
         self,
         queue: mp.Queue,
         amqp_config: AMQPConfig,
-        event: mp.Event,
+        event: Event,
         exchange_name: str,
+        parent_pid: int
     ):
         super(LogProcess, self).__init__()
         self.mpqueue = queue
         self.cfg = amqp_config
         self.parent_stopping = event
         self.exchange_name = exchange_name
+        self.parent_pid = parent_pid
 
     @property
     def parent_alive(self):
+        os.getppid()
         stop_flag_set = self.parent_stopping.is_set()
-        pid_changed = self._parent_pid != os.getppid()
+        pid_changed = self.parent_pid != os.getppid()
         if pid_changed:
             print("parent process pid changed!")
         return not (stop_flag_set or pid_changed)
@@ -66,19 +72,22 @@ class LogProcess(mp.Process):
             self.loop.stop()
 
         # kill this process because somehow any other way does not work?
-        os.kill(os.getpid(), signal.SIGKILL)
+        self.kill()
 
     async def main(self):
         self.connection = await aio_pika.connect_robust(**self.cfg.aio_pika())
-        l = await asyncio.gather(
-            self.handle_asqueue(), self.get_from_mp_queue()
-        )
+        try:
+            l = await asyncio.gather(self.handle_asqueue(), self.get_from_mp_queue())
+        finally:
+            await self.connection.close()
 
     async def handle_asqueue(self):
         connection = self.connection
 
         channel = await connection.channel()
-        exchange = await channel.declare_exchange(self.exchange_name,aio_pika.ExchangeType.TOPIC,durable=True)
+        exchange = await channel.declare_exchange(
+            self.exchange_name, aio_pika.ExchangeType.TOPIC, durable=True
+        )
 
         while self.parent_alive:
             try:
@@ -129,7 +138,8 @@ def _logrecord_to_dict(obj: LogRecord) -> dict:
         "process_name": str(obj.processName),
     }
     try:
-        new_dict["exception_info"] = traceback.format_tb(obj.exc_info[2])
-    except Exception:
+        new_dict["exception_info"] = "; ".join(traceback.format_tb(obj.exc_info[2]))
+    except IndexError:
         pass
+
     return new_dict

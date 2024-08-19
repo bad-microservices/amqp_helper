@@ -1,6 +1,12 @@
 Changelog
 ===========
 
+0.1.5
+------
+* :code:`AMQPClient.call` now has a timeout set by default.
+* :code:`AMQPLogHandler` should now behave better
+* minor Type Hint clean up
+
 0.1.4
 ------
 * **BUGFIX**
