@@ -1,0 +1,4 @@
+[build-system]
+requires = ["aio-pika", "setuptools"]
+
+build-backend = "setuptools.build_meta"

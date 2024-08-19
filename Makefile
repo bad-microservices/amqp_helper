@@ -18,4 +18,4 @@ doc: deps
 
 package: deps
 	rm -fR dist/
-	pipenv --python /usr/bin/python3 run python -m build
+	pipenv run python -m build

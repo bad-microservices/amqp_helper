@@ -7,14 +7,13 @@ name = "pypi"
 aio-pika = "*"
 
 [dev-packages]
-sphinx-immaterial = "*"
-sphinx-autodoc-typehints = "*"
-sphinx-copybutton = "*"
 black = "*"
 build = "*"
-setuptools = "*"
 twine = "*"
-
+setuptools = "*"
+sphinx-immaterial = "*"
+sphinx-copybutton = "*"
+sphinx-autodoc-typehints = "*"
 
 [requires]
 python_version = "3.11"
